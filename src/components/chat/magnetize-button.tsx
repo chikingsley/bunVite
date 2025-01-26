@@ -1,11 +1,11 @@
 "use client" 
 
-import * as React from "react"
+import React, { useState } from "react"
 
 import { cn } from "@/utils";
 import { motion, useAnimation } from "framer-motion";
 import { Magnet } from "lucide-react";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface MagnetizeButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -38,31 +38,37 @@ function MagnetizeButton({
         setParticles(newParticles);
     }, [particleCount]);
 
-    const handleInteractionStart = useCallback(async () => {
+    const handleInteractionStart = () => {
         setIsAttracting(true);
-        await particlesControl.start({
+        particlesControl.start((index) => ({
             x: 0,
             y: 0,
+            scale: 1,
             transition: {
                 type: "spring",
-                stiffness: 50,
-                damping: 10,
-            },
-        });
-    }, [particlesControl]);
+                stiffness: 200,
+                damping: 20,
+                mass: 1,
+                delay: index * 0.02
+            }
+        }));
+    };
 
-    const handleInteractionEnd = useCallback(async () => {
+    const handleInteractionEnd = () => {
         setIsAttracting(false);
-        await particlesControl.start((i) => ({
-            x: particles[i].x,
-            y: particles[i].y,
+        particlesControl.start((index) => ({
+            x: particles[index].x * attractRadius,
+            y: particles[index].y * attractRadius,
+            scale: 0,
             transition: {
                 type: "spring",
                 stiffness: 100,
                 damping: 15,
-            },
+                mass: 1,
+                delay: index * 0.01
+            }
         }));
-    }, [particlesControl, particles]);
+    };
 
     return (
         <Button
@@ -85,8 +91,14 @@ function MagnetizeButton({
                 <motion.div
                     key={index}
                     custom={index}
-                    initial={{ x: particles[index].x, y: particles[index].y }}
+                    initial={{ x: particles[index].x, y: particles[index].y, scale: 0 }}
                     animate={particlesControl}
+                    transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 20,
+                        mass: 1,
+                    }}
                     className={cn(
                         "absolute w-1.5 h-1.5 rounded-full",
                         "bg-violet-400 dark:bg-violet-300",
@@ -99,7 +111,7 @@ function MagnetizeButton({
                 <Magnet
                     className={cn(
                         "w-4 h-4 transition-transform duration-300",
-                        isAttracting && "scale-110"
+                        isAttracting && "scale-110 rotate-12"
                     )}
                 />
                 {isAttracting ? "Attracting" : "Start Call"}
