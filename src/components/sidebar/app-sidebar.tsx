@@ -1,8 +1,8 @@
 import * as React from "react"
-import { Command, Home, LifeBuoy, Send } from "lucide-react"
+import { Command, LogIn } from "lucide-react"
+import { SignInButton, SignedIn, SignedOut } from "@clerk/clerk-react"
 
 import { NavSessions } from "@/components/sidebar/nav-sessions"
-import { NavSecondary } from "@/components/sidebar/nav-secondary"
 import { NavUser } from "@/components/sidebar/nav-user"
 import {
   Sidebar,
@@ -13,20 +13,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Button } from "../ui/button"
 
 const data = {
-  navSecondary: [
-    {
-      title: "Support",
-      url: "#",
-      icon: LifeBuoy,
-    },
-    {
-      title: "Feedback",
-      url: "#",
-      icon: Send,
-    },
-  ],
   sessions: [
     {
       id: "1",
@@ -69,25 +58,40 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <a href="/">
-                <Home className="size-4" />
-                <span>Home</span>
-              </a>
-            </SidebarMenuButton>
+            <div className="px-2">
+              <div className="my-2 border-t" />
+              <Button variant="default" onClick={handleNewChat} className="w-full flex items-center gap-1.5 rounded-lg">
+                <Command className="size-4" />
+                Start New Chat 
+              </Button>
+              <div className="my-2 border-t" />
+            </div>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <NavSessions 
           sessions={data.sessions}
-          onNewChat={handleNewChat}
           onSelectSession={handleSelectSession}
         />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser />
+        <SignedIn>
+          <NavUser />
+        </SignedIn>
+        <SignedOut>
+          <SignInButton mode="modal">
+            <Button variant="default" className="w-full justify-start rounded-lg gap-2 p-4 h-14 font-normal">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border">
+                <LogIn className="size-4" />  
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium">Sign In</p>
+                <p className="text-xs text-muted-foreground">to start chatting</p>
+              </div>
+            </Button>
+          </SignInButton>
+        </SignedOut>
       </SidebarFooter>
     </Sidebar>
   )

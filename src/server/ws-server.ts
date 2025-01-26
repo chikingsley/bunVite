@@ -22,14 +22,30 @@ async function ensureStoreInitialized() {
 
 // WebSocket configuration
 export const wsConfig: WebSocketHandler<WebSocketData> = {
-  message(ws, message) {
+  async message(ws, message) {
     const { userId, sessionId } = ws.data;
     
     try {
+      // Ensure store is initialized
+      await ensureStoreInitialized();
+      
       // Add message to store
       const messageData = JSON.parse(String(message));
       if (messageData.type === 'chat_message') {
-        addMessage(sessionId, messageData.content, messageData.role);
+        console.log('Adding message to store:', { sessionId, content: messageData.content, role: messageData.role });
+        const messageId = addMessage(sessionId, messageData.content, messageData.role);
+        console.log('Message added with ID:', messageId);
+        
+        // Send confirmation back to sender
+        ws.send(JSON.stringify({
+          type: 'message_added',
+          data: {
+            messageId,
+            sessionId,
+            content: messageData.content,
+            role: messageData.role
+          }
+        }));
       }
       
       // Send to other connections

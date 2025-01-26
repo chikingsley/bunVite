@@ -1,6 +1,6 @@
 "use client"
 
-import { MessageSquare, Plus } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 
 import {
   SidebarGroup,
@@ -19,23 +19,15 @@ export interface ChatSession {
 
 export function NavSessions({
   sessions,
-  onNewChat,
   onSelectSession,
 }: {
   sessions: ChatSession[]
-  onNewChat: () => void
   onSelectSession: (sessionId: string) => void
 }) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Chat Sessions</SidebarGroupLabel>
       <SidebarMenu>
-        <SidebarMenuItem>
-          <SidebarMenuButton onClick={onNewChat}>
-            <Plus className="size-4" />
-            <span>New Chat</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
         {sessions.map((session) => (
           <SidebarMenuItem key={session.id}>
             <SidebarMenuButton 

@@ -98,10 +98,6 @@ export function NavUser() {
                 <CreditCard className="mr-2" />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2" />
-                Notifications
-              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut()}>

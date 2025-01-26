@@ -7,8 +7,9 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { getHumeAccessToken } from "@/utils/getHumeAccessToken"
-import { WebSocketTest } from "@/components/WebSocketTest"
+import { StoreTest } from "@/components/StoreTest"
 import { initializePersistence } from "@/utils/store-config"
+import { StoreProvider } from "@/components/providers/StoreProvider"
 
 interface RootLayoutProps {
   children: React.ReactNode
@@ -56,31 +57,33 @@ export function RootLayout({ children }: RootLayoutProps) {
   }
 
   return (
-    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-      <BrowserRouter>
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <VoiceProvider
-            auth={{ type: "accessToken", value: accessToken }}
-            onMessage={() => {
-              // Message handling can be added here
-            }}
-          >
-            <div className="flex h-screen flex-col">
-              <div className="flex flex-1 overflow-hidden">
-                <SidebarProvider>
-                  <AppSidebar />
-                  <SidebarInset>
-                    <main className="flex-1 relative overflow-auto">
-                      <WebSocketTest />
-                      {children}
-                    </main>
-                  </SidebarInset>
-                </SidebarProvider>
+    <StoreProvider>
+      <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <BrowserRouter>
+          <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+            <VoiceProvider
+              auth={{ type: "accessToken", value: accessToken }}
+              onMessage={() => {
+                // Message handling can be added here
+              }}
+            >
+              <div className="flex h-screen flex-col">
+                <div className="flex flex-1 overflow-hidden">
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <main className="flex-1 relative overflow-auto">
+                        <StoreTest />
+                        {children}
+                      </main>
+                    </SidebarInset>
+                  </SidebarProvider>
+                </div>
               </div>
-            </div>
-          </VoiceProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </ClerkProvider>
+            </VoiceProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </ClerkProvider>
+    </StoreProvider>
   )
 } 
