@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { getHumeAccessToken } from "@/utils/getHumeAccessToken"
+import { WebSocketTest } from "@/components/WebSocketTest"
 
 interface RootLayoutProps {
   children: React.ReactNode
@@ -63,6 +64,7 @@ export function RootLayout({ children }: RootLayoutProps) {
                   <AppSidebar />
                   <SidebarInset>
                     <main className="flex-1 relative overflow-auto">
+                      <WebSocketTest />
                       {children}
                     </main>
                   </SidebarInset>
