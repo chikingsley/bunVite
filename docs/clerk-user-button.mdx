@@ -1,0 +1,373 @@
+---
+title: '`<UserButton />` component'
+description: Clerk's <UserButton /> component is used to render the familiar user button UI popularized by Google.
+---
+
+![The \<UserButton /> component renders the familiar user button UI popularized by Google.](/docs/images/ui-components/user-button.png){{ style: { maxWidth: '436px' } }}
+
+The `<UserButton />` component is used to render the familiar user button UI popularized by Google.
+
+Clerk is the only provider with multi-session support, allowing users to sign into multiple accounts at once and switch between them. For multi-session apps, the `<UserButton />` automatically supports instant account switching, without the need of a full page reload. For more information, see the [dedicated guide on multi-session apps](/docs/custom-flows/multi-session-applications#overview).
+
+## Properties
+
+All props are optional.
+
+<Properties>
+  - `afterMultiSessionSingleSignOutUrl` (deprecated)
+  - `string`
+
+  The full URL or path to navigate to after a signing out from a currently active account in a multi-session app. **Deprecated - Move `afterSignOutUrl` to `<ClerkProvider/>`.**
+
+  ---
+
+  - `afterSignOutUrl` (deprecated)
+  - `string`
+
+  The full URL or path to navigate to after a successful sign-out. **Deprecated - Move `afterSignOutUrl` to `<ClerkProvider/>`.**
+
+  ---
+
+  - `afterSwitchSessionUrl`
+  - `string`
+
+  The full URL or path to navigate to after a successful account change in a multi-session app.
+
+  ---
+
+  - `appearance`
+  - <code>[Appearance](/docs/customization/overview) | undefined</code>
+
+  Optional object to style your components. Will only affect [Clerk components](/docs/components/overview) and not [Account Portal](/docs/customization/account-portal/overview) pages.
+
+  ---
+
+  - `defaultOpen`
+  - `boolean`
+
+  Controls whether the `<UserButton />` should open by default during the first render.
+
+  ---
+
+  - `showName`
+  - `boolean`
+
+  Controls if the user name is displayed next to the user image button.
+
+  ---
+
+  - `signInUrl`
+  - `string`
+
+  The full URL or path to navigate to when the **Add another account** button is clicked. It's recommended to use [the environment variable](/docs/deployments/clerk-environment-variables#sign-in-and-sign-up-redirects) instead.
+
+  ---
+
+  - `userProfileMode`
+  - `'modal' | 'navigation'`
+
+  Controls whether clicking the **Manage your account** button will cause the [`<UserProfile />`](/docs/components/user/user-profile) component to open as a modal, or if the browser will navigate to the `userProfileUrl` where `<UserProfile />` is mounted as a page.<br />Defaults to: `'modal'`.
+
+  ---
+
+  - `userProfileProps`
+  - `object`
+
+  Specify options for the underlying [`<UserProfile />`](/docs/components/user/user-profile) component.<br />For example: `{additionalOAuthScopes: {google: ['foo', 'bar'], github: ['qux']}}`.
+
+  ---
+
+  - `userProfileUrl`
+  - `string`
+
+  The full URL or path leading to the user management interface.
+
+  ---
+
+  - `fallback?`
+  - `ReactNode`
+
+  An optional element to be rendered while the component is mounting.
+</Properties>
+
+## Usage with frameworks
+
+In the following example, `<UserButton />` is mounted inside a header component, which is a common pattern on many websites and applications. When the user is signed in, they will see their avatar and be able to open the popup menu.
+
+<Tabs items={["Next.js", "React", "Remix", "Astro", "Vue"]}>
+  <Tab>
+    <CodeBlockTabs options={["App Router", "Pages Router"]}>
+      ```tsx {{ filename: 'layout.tsx' }}
+      import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+
+      function Header() {
+        return (
+          <header style={{ display: 'flex', justifyContent: 'space-between', padding: 20 }}>
+            <h1>My App</h1>
+            <SignedIn>
+              {/* Mount the UserButton component */}
+              <UserButton />
+            </SignedIn>
+            <SignedOut>
+              {/* Signed out users get sign in button */}
+              <SignInButton />
+            </SignedOut>
+          </header>
+        )
+      }
+
+      export default function RootLayout({ children }: { children: React.ReactNode }) {
+        return (
+          <html lang="en">
+            <ClerkProvider>
+              <Header />
+              {children}
+            </ClerkProvider>
+          </html>
+        )
+      }
+      ```
+
+      ```jsx {{ filename: 'userButtonExample.tsx' }}
+      import { ClerkProvider, SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+
+      function Header() {
+        return (
+          <header style={{ display: 'flex', justifyContent: 'space-between', padding: 20 }}>
+            <h1>My App</h1>
+            <SignedIn>
+              {/* Mount the UserButton component */}
+              <UserButton />
+            </SignedIn>
+            <SignedOut>
+              {/* Signed out users get sign in button */}
+              <SignInButton />
+            </SignedOut>
+          </header>
+        )
+      }
+
+      function MyApp({ pageProps }) {
+        return (
+          <ClerkProvider {...pageProps}>
+            <Header />
+          </ClerkProvider>
+        )
+      }
+
+      export default MyApp
+      ```
+    </CodeBlockTabs>
+  </Tab>
+
+  <Tab>
+    ```tsx {{ filename: 'app.tsx' }}
+    import { ClerkProvider, SignedIn, SignIn, SignUp, UserButton } from '@clerk/clerk-react'
+    import { BrowserRouter, Route, Routes, useNavigate } from 'react-router-dom'
+
+    const clerk_pub_key = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY
+
+    function PublicPage() {
+      return (
+        <>
+          <h1>Public page</h1>
+          <a href="/protected">Go to protected page</a>
+        </>
+      )
+    }
+
+    function ProtectedPage() {
+      return (
+        <>
+          <h1>Protected page</h1>
+          <UserButton />
+        </>
+      )
+    }
+
+    function ClerkProviderWithRoutes() {
+      const navigate = useNavigate()
+
+      return (
+        <ClerkProvider publishableKey={clerk_pub_key} navigate={(to) => navigate(to)}>
+          <Routes>
+            <Route path="/" element={<PublicPage />} />
+            <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
+            <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
+            <Route
+              path="/protected"
+              element={
+                <SignedIn>
+                  <ProtectedPage />
+                </SignedIn>
+              }
+            />
+          </Routes>
+        </ClerkProvider>
+      )
+    }
+
+    function App() {
+      return (
+        <BrowserRouter>
+          <ClerkProviderWithRoutes />
+        </BrowserRouter>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab>
+    ```tsx {{ filename: 'router/index.tsx' }}
+    import { UserButton } from '@clerk/remix'
+    import { getAuth } from '@clerk/remix/ssr.server'
+    import { LoaderFunction, redirect } from '@remix-run/node'
+
+    export const loader: LoaderFunction = async (args) => {
+      const { userId } = await getAuth(args)
+      if (!userId) {
+        return redirect('/sign-in')
+      }
+      return {}
+    }
+
+    export default function Index() {
+      return (
+        <div>
+          <h1>Index route</h1>
+          <p>You are signed in!</p>
+          <UserButton />
+        </div>
+      )
+    }
+    ```
+  </Tab>
+
+  <Tab>
+    ```astro {{ filename: 'pages/index.astro' }}
+    ---
+    import { SignedIn, UserButton } from '@clerk/astro/components'
+    ---
+
+    <SignedIn>
+      <UserButton />
+    </SignedIn>
+    ```
+  </Tab>
+
+  <Tab>
+    ```vue {{ filename: 'header.vue' }}
+    <script setup>
+    import { SignedIn, UserButton } from '@clerk/vue'
+    </script>
+
+    <template>
+      <header>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
+      </header>
+    </template>
+    ```
+  </Tab>
+</Tabs>
+
+## Usage with JavaScript
+
+The following methods available on an instance of the [`Clerk`](/docs/references/javascript/clerk/clerk) class are used to render and control the `<UserButton />` component:
+
+- [`mountUserButton()`](#mount-user-button)
+- [`unmountUserButton()`](#unmount-user-button)
+
+The following examples assume that you have followed the [quickstart](/docs/quickstarts/javascript) in order to add Clerk to your JavaScript application.
+
+### `mountUserButton()`
+
+Render the `<UserButton />` component to an HTML `<div>` element.
+
+```typescript
+function mountUserButton(node: HTMLDivElement, props?: UserButtonProps): void
+```
+
+#### `mountUserButton()` params
+
+<Properties>
+  - `node`
+  - [`HTMLDivElement`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLDivElement)
+
+  The `<div>` element used to render in the `<UserButton />` component
+
+  ---
+
+  - `props?`
+  - [`UserButtonProps`](#properties)
+
+  The properties to pass to the `<UserButton />` component
+</Properties>
+
+#### `mountUserButton()` usage
+
+```js {{ filename: 'main.js', mark: [15] }}
+import { Clerk } from '@clerk/clerk-js'
+
+// Initialize Clerk with your Clerk Publishable Key
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+const clerk = new Clerk(clerkPubKey)
+await clerk.load()
+
+document.getElementById('app').innerHTML = `
+  <div id="user-button"></div>
+`
+
+const userbuttonDiv = document.getElementById('user-button')
+
+clerk.mountUserButton(userbuttonDiv)
+```
+
+### `unmountUserButton()`
+
+Unmount and run cleanup on an existing `<UserButton />` component instance.
+
+```typescript
+function unmountUserButton(node: HTMLDivElement): void
+```
+
+#### `unmountUserButton()` params
+
+<Properties>
+  - `node`
+  - [`HTMLDivElement`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLDivElement)
+
+  The container `<div>` element with a rendered `<UserButton />` component instance.
+</Properties>
+
+#### `unmountUserButton()` usage
+
+```js {{ filename: 'main.js', mark: [19] }}
+import { Clerk } from '@clerk/clerk-js'
+
+// Initialize Clerk with your Clerk Publishable Key
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+const clerk = new Clerk(clerkPubKey)
+await clerk.load()
+
+document.getElementById('app').innerHTML = `
+  <div id="user-button"></div>
+`
+
+const userButtonDiv = document.getElementById('user-button')
+
+clerk.mountUserButton(userButtonDiv)
+
+// ...
+
+clerk.unmountUserButton(userButtonDiv)
+```
+
+## Customization
+
+To learn about how to customize Clerk components, see the [customization documentation](/docs/customization/overview).
+
+You can also [add custom actions and links to the `<UserButton />` menu](/docs/customization/user-button).
