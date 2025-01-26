@@ -1,68 +1,39 @@
-import { useState } from 'react';
-import { useWebSocket } from '../hooks/use-websocket';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth } from "@clerk/clerk-react";
+import { useEffect, useState } from "react";
+import { store } from "@/utils/store-config";
 
 export function WebSocketTest() {
-  const [message, setMessage] = useState('');
   const { getToken } = useAuth();
-  const { user, isLoaded } = useUser();
-  
-  const { isConnected, error, sendMessage } = useWebSocket({
-    url: 'ws://localhost:3001/chat',
-    getToken,
-    onMessage: (msg) => {
-      console.log('Received:', msg);
-    },
-    onError: (err) => {
-      console.error('WebSocket error:', err);
-    },
-    onClose: () => {
-      console.log('WebSocket closed');
-    }
-  });
+  const [ws, setWs] = useState<WebSocket | null>(null);
 
-  const handleSend = () => {
-    if (message.trim()) {
-      sendMessage('chat_message', { 
-        text: message,
-        userId: user?.id 
-      });
-      setMessage('');
-    }
-  };
+  useEffect(() => {
+    const connect = async () => {
+      const token = await getToken();
+      if (!token) return;
 
-  if (!isLoaded) {
-    return <div>Loading...</div>;
-  }
+      const socket = new WebSocket(`ws://localhost:3001/chat?token=${token}`);
+      setWs(socket);
 
-  if (!user) {
-    return <div>Please sign in to use chat</div>;
-  }
+      socket.onopen = () => console.log("Connected!");
+      socket.onclose = () => console.log("Disconnected!");
+      socket.onmessage = (event) => console.log("Message:", event.data);
+    };
 
+    connect();
+    return () => ws?.close();
+  }, [getToken]);
+
+  // Debug view of store data
   return (
     <div className="p-4">
-      <div className="mb-4">
-        Status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
-        {error && <div className="text-red-500">Error: {error.type}</div>}
-      </div>
-      
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          className="border p-2 rounded"
-          placeholder="Type a message..."
-          disabled={!isConnected}
-        />
-        <button
-          onClick={handleSend}
-          disabled={!isConnected || !message.trim()}
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
-        >
-          Send
-        </button>
-      </div>
+      <h2 className="text-lg font-bold mb-2">Store Data:</h2>
+      <pre className="bg-gray-800 p-4 rounded">
+        {JSON.stringify({
+          users: store.getTable('users'),
+          sessions: store.getTable('sessions'),
+          messages: store.getTable('messages'),
+        }, null, 2)}
+      </pre>
     </div>
   );
 } 

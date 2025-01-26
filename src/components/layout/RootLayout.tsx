@@ -8,6 +8,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { getHumeAccessToken } from "@/utils/getHumeAccessToken"
 import { WebSocketTest } from "@/components/WebSocketTest"
+import { initializePersistence } from "@/utils/store-config"
 
 interface RootLayoutProps {
   children: React.ReactNode
@@ -16,6 +17,7 @@ interface RootLayoutProps {
 export function RootLayout({ children }: RootLayoutProps) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [storeInitialized, setStoreInitialized] = useState(false)
   const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
   useEffect(() => {
@@ -24,27 +26,32 @@ export function RootLayout({ children }: RootLayoutProps) {
       return
     }
 
-    const initializeTokens = async () => {
+    const initialize = async () => {
       try {
+        // Initialize Hume token
         const token = await getHumeAccessToken()
         if (!token) {
           setError("No access token available")
           return
         }
         setAccessToken(token)
+
+        // Initialize store
+        await initializePersistence()
+        setStoreInitialized(true)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to initialize")
       }
     }
 
-    initializeTokens()
+    initialize()
   }, [PUBLISHABLE_KEY])
 
   if (error) {
     return <div className="p-4 text-destructive">{error}</div>
   }
 
-  if (!accessToken) {
+  if (!accessToken || !storeInitialized) {
     return <div className="p-4">Initializing...</div>
   }
 
