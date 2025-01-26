@@ -1,18 +1,9 @@
 import * as React from "react"
 import { Command, LogIn } from "lucide-react"
 import { SignInButton, SignedIn, SignedOut } from "@clerk/clerk-react"
-
 import { NavSessions } from "@/components/sidebar/nav-sessions"
 import { NavUser } from "@/components/sidebar/nav-user"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { Button } from "../ui/button"
 
 const data = {

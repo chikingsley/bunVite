@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MagnetizeButton } from "@/components/chat/magnetize-button";
@@ -156,9 +154,9 @@ export function ChatInputForm({ onSubmit, onStartCall }: ChatInputFormProps) {
   };
 
   return (
-    <div className="flex w-full max-w-3xl">
+    <div className="flex justify-center items-center w-full">
       <form 
-        className="relative w-full rounded-lg border bg-card shadow-sm focus-within:ring-1 focus-within:ring-ring"
+        className="relative w-[600px] rounded-lg border bg-card shadow-sm focus-within:ring-1 focus-within:ring-ring"
         onSubmit={handleSubmit}
       >
         <div className="flex flex-col gap-1.5 p-4">

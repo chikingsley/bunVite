@@ -1,7 +1,7 @@
 import { ComponentRef, useEffect, useRef } from "react";
 import { useVoice } from "@humeai/voice-react";
 import Messages from "./Messages";
-import { BottomControls } from "@/components/hume/BottomControls";
+import { BottomControls } from "@/components/chat/BottomControls";
 
 export default function Chat() {
   const timeout = useRef<number | null>(null);

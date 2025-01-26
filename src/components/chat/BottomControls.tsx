@@ -4,14 +4,15 @@ import React from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
-import { useIsTablet } from "@/hooks/use-mobile"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { ChatInputForm } from "@/components/chat/ChatInputForm"
-import Controls from "./Controls"
+import Controls from "../hume/Controls"
+import { cn } from "@/utils"
 
 export function BottomControls() {
   const { status, connect, disconnect } = useVoice()
   const [isTransitioning, setIsTransitioning] = React.useState(false)
-  const isTablet = useIsTablet()
+  const isMobile = useIsMobile()
   
   const handleStartCall = async () => {
     setIsTransitioning(true)
@@ -40,7 +41,7 @@ export function BottomControls() {
   
   return (
     <div className="fixed bottom-0 right-0 w-full flex items-center justify-center bg-gradient-to-t from-background via-background/90 to-background/0">
-      {isTablet && (
+      {isMobile && (
         <Sheet>
           <SheetTrigger asChild>
             <Button
@@ -56,8 +57,11 @@ export function BottomControls() {
           </SheetContent>
         </Sheet>
       )}
-      <div className={`w-full p-4 ${!isTablet ? "pl-[250px]" : ""}`}>
-        <div className="w-full max-w-[900px] mx-auto">
+      <div className={cn(
+        "w-full transition-all duration-200 flex justify-center",
+        !isMobile ? "pl-64" : ""
+      )}>
+        <div className="w-full max-w-2xl px-4">
           <AnimatePresence mode="wait" initial={false}>
             {showControls ? (
               <motion.div

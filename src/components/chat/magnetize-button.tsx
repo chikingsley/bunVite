@@ -1,7 +1,4 @@
-"use client" 
-
 import React, { useState } from "react"
-
 import { cn } from "@/utils";
 import { motion, useAnimation } from "framer-motion";
 import { Magnet } from "lucide-react";
