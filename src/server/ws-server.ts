@@ -1,4 +1,5 @@
 import { Server, ServerWebSocket } from "bun";
+import { verifyToken } from "@clerk/backend";
 
 // Types for WebSocket messages
 type MessageType = 
@@ -28,7 +29,7 @@ export function createWSServer(port: number = 3001) {
   const server = Bun.serve<WebSocketData>({
     port,
 
-    fetch(req: Request, server: Server) {
+    async fetch(req: Request, server: Server) {
       const url = new URL(req.url);
       console.log(`Incoming request to ${url.pathname}`);
       
@@ -44,8 +45,20 @@ export function createWSServer(port: number = 3001) {
         }
 
         try {
-          // TODO: Verify token
-          const userId = 'temp-user-id'; // Will be from token verification
+          // Verify token with Clerk
+          const session = await verifyToken(token, {
+            secretKey: process.env.CLERK_SECRET_KEY,
+            // Optional: Add additional verification options
+            // audience: 'your-audience',
+            // issuer: 'your-issuer'
+          });
+
+          if (!session) {
+            console.error('Invalid token');
+            return new Response('Invalid token', { status: 403 });
+          }
+
+          const userId = session.sub;
           const sessionId = crypto.randomUUID();
           console.log(`Creating session for user ${userId}`);
 
@@ -103,17 +116,22 @@ export function createWSServer(port: number = 3001) {
           const msg = JSON.parse(String(message)) as WebSocketMessage;
           
           switch (msg.type) {
-            case 'chat_message':
-              // Handle chat messages
-              server.publish(
-                `user:${ws.data.userId}`,
-                JSON.stringify({
-                  type: 'chat_message',
-                  data: msg.data,
-                  custom_session_id: ws.data.sessionId
-                })
-              );
+            case 'chat_message': {
+              // Get all connections for this user
+              const messageData = JSON.stringify({
+                type: 'chat_message',
+                data: msg.data,
+                custom_session_id: ws.data.sessionId
+              });
+
+              // Send to all OTHER clients subscribed to this user's channel
+              for (const client of connections.values()) {
+                if (client !== ws && client.data.userId === ws.data.userId) {
+                  client.send(messageData);
+                }
+              }
               break;
+            }
 
             case 'audio_input':
               // Handle audio input - will integrate with Hume

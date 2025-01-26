@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { useWebSocket } from '../hooks/use-websocket';
+import { useAuth, useUser } from '@clerk/clerk-react';
 
 export function WebSocketTest() {
   const [message, setMessage] = useState('');
+  const { getToken } = useAuth();
+  const { user, isLoaded } = useUser();
   
   const { isConnected, error, sendMessage } = useWebSocket({
     url: 'ws://localhost:3001/chat',
-    token: 'test-token', // We'll need to replace this with a real token
+    getToken,
     onMessage: (msg) => {
       console.log('Received:', msg);
     },
@@ -20,10 +23,21 @@ export function WebSocketTest() {
 
   const handleSend = () => {
     if (message.trim()) {
-      sendMessage('chat_message', { text: message });
+      sendMessage('chat_message', { 
+        text: message,
+        userId: user?.id 
+      });
       setMessage('');
     }
   };
+
+  if (!isLoaded) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    return <div>Please sign in to use chat</div>;
+  }
 
   return (
     <div className="p-4">
