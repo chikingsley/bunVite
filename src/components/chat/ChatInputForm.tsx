@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChatInput } from "@/components/chat/chat-input";
 import { MagnetizeButton } from "@/components/chat/magnetize-button";
 import { ArrowRight, Mic, Paperclip } from "lucide-react";
 import { cn } from "@/utils";
@@ -70,11 +69,19 @@ interface ChatInputFormProps {
 }
 
 export function ChatInputForm({ onSubmit, onStartCall }: ChatInputFormProps) {
-  const [isListening, setIsListening] = React.useState(false);
-  const [transcript, setTranscript] = React.useState("");
-  const [inputValue, setInputValue] = React.useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [inputValue, setInputValue] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [inputValue]);
 
   const stopRecognition = () => {
     if (recognitionRef.current) {
@@ -99,20 +106,21 @@ export function ChatInputForm({ onSubmit, onStartCall }: ChatInputFormProps) {
       audioStreamRef.current = stream;
       setIsListening(true);
 
-      // Initialize speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
       recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.interimResults = false;
       
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        setTranscript(transcript);
+        const lastResult = event.results[event.results.length - 1];
+        const transcript = lastResult[0].transcript;
+        
+        setInputValue(prev => {
+          const prefix = prev.trim() ? prev.trim() + ' ' : '';
+          return prefix + transcript.trim();
+        });
       };
 
       recognition.onerror = () => {
@@ -130,7 +138,6 @@ export function ChatInputForm({ onSubmit, onStartCall }: ChatInputFormProps) {
     }
   };
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopRecognition();
@@ -139,61 +146,74 @@ export function ChatInputForm({ onSubmit, onStartCall }: ChatInputFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const text = transcript || inputValue;
-    if (text.trim() && onSubmit) {
-      onSubmit(text);
-      setTranscript("");
+    if (inputValue.trim() && onSubmit) {
+      onSubmit(inputValue.trim());
       setInputValue("");
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     }
   };
 
   return (
     <div className="flex w-full max-w-3xl">
       <form 
-        className="relative w-full rounded-lg border bg-card shadow-sm focus-within:ring-1 focus-within:ring-ring p-4"
+        className="relative w-full rounded-lg border bg-card shadow-sm focus-within:ring-1 focus-within:ring-ring"
         onSubmit={handleSubmit}
       >
-        <ChatInput
-          value={transcript || inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Type a message or use your microphone..."
-          className="min-h-12 resize-none rounded-lg bg-background border-0 p-3 shadow-none focus-visible:ring-0"
-        />
+        <div className="flex flex-col gap-1.5 p-4">
+          <div className="flex min-h-[4.5rem]">
+            <textarea
+              ref={textareaRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Type a message or use your microphone..."
+              autoFocus
+              className="min-h-[4.5rem] w-full resize-none rounded-lg bg-background text-base leading-relaxed focus-visible:outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground caret-foreground"
+              style={{
+                height: 'auto',
+                overflow: 'hidden'
+              }}
+            />
+          </div>
 
-        <div className="flex items-center p-3 pt-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            disabled
-            className="hover:bg-muted text-muted-foreground"
-          >
-            <Paperclip className="size-4" />
-            <span className="sr-only">Attach file</span>
-          </Button>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                type="button" 
+                disabled
+                className="text-muted-foreground hover:bg-muted"
+              >
+                <Paperclip className="size-4" />
+                <span className="sr-only">Attach file</span>
+              </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            onClick={handleMicClick}
-            className={cn(
-              "hover:bg-muted",
-              isListening && "text-red-500 animate-pulse"
-            )}
-          >
-            <Mic className="size-4" />
-            <span className="sr-only">Use Microphone</span>
-          </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                type="button"
+                onClick={handleMicClick}
+                className={cn(
+                  "text-muted-foreground hover:bg-muted",
+                  isListening && "text-red-500 animate-pulse border-red-500"
+                )}
+              >
+                <Mic className="size-4" />
+                <span className="sr-only">Use Microphone</span>
+              </Button>
+            </div>
 
-          <MagnetizeButton 
-            className="ml-auto gap-1.5"
-            onClick={onStartCall}
-            type="button"
-          >
-            Start Call
-            <ArrowRight className="size-3.5" />
-          </MagnetizeButton>
+            <MagnetizeButton 
+              className="gap-1.5"
+              onClick={onStartCall}
+              type="button"
+            >
+              Start Call
+              <ArrowRight className="size-3.5" />
+            </MagnetizeButton>
+          </div>
         </div>
       </form>
     </div>
