@@ -7,6 +7,93 @@ export function useHumeWS(configId: string) {
   const [status, setStatus] = useState<HumeWSStatus>('idle');
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const processorNodeRef = useRef<ScriptProcessorNode | null>(null);
+
+  const startAudioStream = async () => {
+    try {
+      // Get microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      // Set up audio processing
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      
+      // First send session settings
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({
+          type: 'session_settings',
+          audio: {
+            channels: 1,
+            encoding: 'linear16',
+            sample_rate: audioContext.sampleRate
+          }
+        }));
+      }
+
+      // Create audio source from microphone
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      // Create processor node for raw audio data
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processorNodeRef.current = processor;
+
+      // Process audio data
+      processor.onaudioprocess = (e) => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          // Get raw audio data
+          const inputData = e.inputBuffer.getChannelData(0);
+          
+          // Convert to 16-bit PCM
+          const pcmData = new Int16Array(inputData.length);
+          for (let i = 0; i < inputData.length; i++) {
+            pcmData[i] = Math.max(-1, Math.min(1, inputData[i])) * 0x7FFF;
+          }
+          
+          // Convert PCM data to base64 string
+          const uint8Array = new Uint8Array(pcmData.buffer);
+          const base64Data = btoa(
+            Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
+          );
+          
+          // Send audio data through WebSocket
+          wsRef.current.send(JSON.stringify({
+            type: 'audio_input',
+            data: base64Data,
+            interim: true
+          }));
+        }
+      };
+
+      // Connect the audio nodes
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+
+    } catch (error) {
+      console.error('Failed to start audio stream:', error);
+      stopAudioStream();
+    }
+  };
+
+  const stopAudioStream = () => {
+    // Stop and cleanup audio processing
+    if (processorNodeRef.current) {
+      processorNodeRef.current.disconnect();
+      processorNodeRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
+    }
+  };
 
   const connect = async () => {
     // Clear any existing connection
@@ -35,9 +122,11 @@ export function useHumeWS(configId: string) {
       const ws = new WebSocket(wsUrl.toString());
       wsRef.current = ws;
 
-      ws.onopen = () => {
+      ws.onopen = async () => {
         console.log('WebSocket connected with config ID:', configId);
         setStatus('connected');
+        // Start audio stream when connected
+        await startAudioStream();
       };
 
       ws.onmessage = (event) => {
@@ -94,11 +183,14 @@ export function useHumeWS(configId: string) {
         console.log('WebSocket closed for config ID:', configId);
         setStatus('idle');
         wsRef.current = null;
+        // Stop audio stream when disconnected
+        stopAudioStream();
       };
 
     } catch (error) {
       console.error('Failed to connect:', error);
       setStatus('error');
+      stopAudioStream();
     }
   };
 
@@ -112,6 +204,7 @@ export function useHumeWS(configId: string) {
       window.clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+    stopAudioStream();
     setStatus('idle');
   };
 

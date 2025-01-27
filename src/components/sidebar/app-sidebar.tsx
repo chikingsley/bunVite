@@ -71,7 +71,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <NavUser />
         </SignedIn>
         <SignedOut>
-          <SignInButton mode="modal">
+          <SignInButton 
+            mode="modal"
+            fallbackRedirectUrl="/"
+            signUpFallbackRedirectUrl="/"
+          >
             <Button variant="default" className="w-full justify-start rounded-lg gap-2 p-4 h-14 font-normal">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border">
                 <LogIn className="size-4" />  

@@ -1,10 +1,10 @@
 import { Webhook } from 'svix';
-import { createHumeConfig, deleteHumeConfig } from '@/utils/hume-auth';
+import { createBasicHumeConfig, deleteHumeConfig } from '@/utils/hume-auth';
 import { createClerkClient } from '@clerk/backend';
 import { BASE_PROMPT } from '@/utils/prompts/base-prompt';
 import { createUser, deleteUser } from '@/utils/store-config';
 import { initializePersistence } from '@/utils/store-config';
-import { createBasicHumeConfig } from '@/utils/hume-auth';
+import { store } from '@/utils/store-config';
 
 const clerkClient = createClerkClient({ 
   secretKey: process.env.CLERK_SECRET_KEY 
@@ -32,6 +32,9 @@ async function ensureStoreInitialized() {
   }
 }
 
+// Track processed webhook IDs
+const processedWebhooks = new Set<string>();
+
 // Handle user creation with basic config
 export async function handleUserCreated(event: WebhookEvent) {
   const { id, email_addresses } = event.data;
@@ -45,6 +48,11 @@ export async function handleUserCreated(event: WebhookEvent) {
   try {
     // Create basic Hume config
     const config = await createBasicHumeConfig(email);
+    console.log('Created BASIC Hume config:', { 
+      id: config.id, 
+      name: config.name,
+      version: config.version 
+    });
     
     // Update user metadata with config ID
     await clerkClient.users.updateUser(id, {
@@ -109,6 +117,21 @@ export async function handleWebhook(req: Request) {
     return new Response('Missing Svix headers', { status: 400 });
   }
 
+  // Check if we've already processed this webhook
+  if (processedWebhooks.has(svix_id)) {
+    console.log('Skipping duplicate webhook:', svix_id);
+    return new Response('Webhook already processed', { status: 200 });
+  }
+
+  // Add to processed set
+  processedWebhooks.add(svix_id);
+
+  // Clean up old webhook IDs (optional, prevents memory leak)
+  if (processedWebhooks.size > 1000) {
+    const idsToRemove = Array.from(processedWebhooks).slice(0, 100);
+    idsToRemove.forEach(id => processedWebhooks.delete(id));
+  }
+
   // Get body
   const payload = await req.json();
   const body = JSON.stringify(payload);
@@ -143,10 +166,10 @@ export async function handleWebhook(req: Request) {
       const firstName = evt.data.first_name;
       const lastName = evt.data.last_name;
 
-      console.log('Creating Hume config for user:', { userId, email });
-      // Create Hume config
-      const humeConfig = await createHumeConfig(email);
-      console.log('Created Hume config:', { 
+      console.log('Creating BASICHume config for user:', { userId, email });
+      // Create basic Hume config
+      const humeConfig = await createBasicHumeConfig(email);
+      console.log('Created BASIC Hume config:', { 
         id: humeConfig.id, 
         name: humeConfig.name,
         version: humeConfig.version 
@@ -199,19 +222,33 @@ export async function handleWebhook(req: Request) {
         throw new Error('No user ID provided in webhook data')
       }
 
-      // Delete from local store
-      deleteUser(userId);
-      console.log('Deleted user from store:', userId);
+      // Initialize store if needed
+      await ensureStoreInitialized();
 
-      // Get Hume config ID from metadata
-      const humeConfigId = evt.data.public_metadata?.humeConfigId;
-      if (!humeConfigId) {
-        throw new Error('No Hume config ID found in metadata')
+      // Get user data from store before deletion
+      const userData = store.getRow('users', userId);
+      console.log('User data:', userData);
+
+      // If no user data found, assume already deleted
+      if (!userData) {
+        console.log('User already deleted from store:', userId);
+        return new Response('User already deleted', { status: 200 });
       }
 
-      // Delete Hume config
-      await deleteHumeConfig(humeConfigId);
-      console.log('Deleted Hume config:', humeConfigId);
+      // Get config ID from store
+      const configId = userData.configId;
+      if (!configId) {
+        throw new Error('No Hume config ID found in store')
+      }
+
+      console.log('Deleting Hume config:', configId);
+      // Delete Hume config first
+      await deleteHumeConfig(configId as string);
+      console.log('Deleted Hume config:', configId);
+
+      // Then delete from local store
+      deleteUser(userId);
+      console.log('Deleted user from store:', userId);
 
       return new Response('User deleted', { status: 200 });
     } catch (error) {
