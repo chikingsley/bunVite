@@ -63,7 +63,7 @@ declare global {
 
 interface ChatInputFormProps {
   onSubmit?: (text: string) => void;
-  onStartCall?: () => void;
+  onStartCall?: () => Promise<void>;
 }
 
 export function ChatInputForm({ onSubmit, onStartCall }: ChatInputFormProps) {

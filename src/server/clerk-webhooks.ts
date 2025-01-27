@@ -4,6 +4,7 @@ import { createClerkClient } from '@clerk/backend';
 import { BASE_PROMPT } from '@/utils/prompts/base-prompt';
 import { createUser, deleteUser } from '@/utils/store-config';
 import { initializePersistence } from '@/utils/store-config';
+import { createBasicHumeConfig } from '@/utils/hume-auth';
 
 const clerkClient = createClerkClient({ 
   secretKey: process.env.CLERK_SECRET_KEY 
@@ -30,6 +31,60 @@ async function ensureStoreInitialized() {
     storeInitialized = true;
   }
 }
+
+// Handle user creation with basic config
+export async function handleUserCreated(event: WebhookEvent) {
+  const { id, email_addresses } = event.data;
+  const email = email_addresses[0]?.email_address;
+
+  if (!email) {
+    console.error('No email found for user:', id);
+    return;
+  }
+
+  try {
+    // Create basic Hume config
+    const config = await createBasicHumeConfig(email);
+    
+    // Update user metadata with config ID
+    await clerkClient.users.updateUser(id, {
+      publicMetadata: {
+        humeConfigId: config.id
+      }
+    });
+
+    // Initialize store if needed
+    await ensureStoreInitialized();
+
+    // Create user in store
+    createUser({
+      id,
+      email,
+      configId: config.id
+    });
+
+  } catch (error) {
+    console.error('Error in user creation:', error);
+  }
+}
+
+/* Commenting out normal config routes
+export async function handleUserDeleted(event: WebhookEvent) {
+  const { id, public_metadata } = event.data;
+  const configId = public_metadata?.humeConfigId;
+
+  try {
+    if (configId) {
+      await deleteHumeConfig(configId);
+    }
+    
+    await ensureStoreInitialized();
+    deleteUser(id);
+  } catch (error) {
+    console.error('Error in user deletion:', error);
+  }
+}
+*/
 
 export async function handleWebhook(req: Request) {
   const SIGNING_SECRET = process.env.SIGNING_SECRET;

@@ -1,4 +1,3 @@
-import { useVoice } from "@humeai/voice-react"
 import { AnimatePresence, motion } from "framer-motion"
 import React from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -8,16 +7,20 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { ChatInputForm } from "@/components/chat/ChatInputForm"
 import Controls from "../hume/Controls"
 import { cn } from "@/utils"
+import { useUser } from "@clerk/clerk-react"
+import { useHumeWS } from "@/hooks/use-hume-ws"
 
 export function BottomControls() {
-  const { status, connect, disconnect } = useVoice()
   const [isTransitioning, setIsTransitioning] = React.useState(false)
   const isMobile = useIsMobile()
+  const { user } = useUser();
+  const configId = user?.publicMetadata?.humeConfigId as string;
+  const ws = useHumeWS(configId);
   
   const handleStartCall = async () => {
     setIsTransitioning(true)
     try {
-      await connect()
+      await ws.connect()
     } catch (error) {
       console.error('Connection failed:', error)
     } finally {
@@ -28,7 +31,7 @@ export function BottomControls() {
   const handleEndCall = async () => {
     setIsTransitioning(true)
     try {
-      await disconnect()
+      await ws.disconnect()
     } catch (error) {
       console.error('Disconnect failed:', error)
     } finally {
@@ -37,7 +40,7 @@ export function BottomControls() {
   }
   
   // Use isTransitioning to show optimistic UI updates
-  const showControls = status.value === "connected" || isTransitioning
+  const showControls = ws.status === "connected" || isTransitioning
   
   return (
     <div className="fixed bottom-0 right-0 w-full flex items-center justify-center bg-gradient-to-t from-background via-background/90 to-background/0">
@@ -95,7 +98,10 @@ export function BottomControls() {
                   layout: { duration: 0.2 }
                 }}
               >
-                <ChatInputForm onStartCall={handleStartCall} />
+                <ChatInputForm 
+                  onSubmit={ws.sendMessage} 
+                  onStartCall={handleStartCall}
+                />
               </motion.div>
             )}
           </AnimatePresence>
