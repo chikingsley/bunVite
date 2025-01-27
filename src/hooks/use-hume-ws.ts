@@ -29,21 +29,25 @@ export function useHumeWS(configId: string) {
       wsUrl.searchParams.set('config_id', configId);
       wsUrl.searchParams.set('api_key', import.meta.env.VITE_HUME_API_KEY);
       
+      console.log('Connecting with URL:', wsUrl.toString());
+      console.log('Using config ID:', configId);
+      
       const ws = new WebSocket(wsUrl.toString());
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected with config ID:', configId);
         setStatus('connected');
       };
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
+        console.log('Received WebSocket message:', message);
         
         // Handle different message types
         switch (message.type) {
           case 'chat_metadata':
-            // Store chat session info
+            console.log('Storing chat session with ID:', message.chat_id);
             store.setRow('sessions', message.chat_id, {
               id: message.chat_id,
               groupId: message.chat_group_id,
@@ -52,8 +56,8 @@ export function useHumeWS(configId: string) {
             break;
 
           case 'user_message':
-            // Store user messages
-            if (!message.interim) {  // Only store final transcripts
+            if (!message.interim) {
+              console.log('Storing user message:', message.message.content);
               store.setRow('messages', crypto.randomUUID(), {
                 content: message.message.content,
                 role: 'user',
@@ -64,7 +68,7 @@ export function useHumeWS(configId: string) {
             break;
 
           case 'assistant_message':
-            // Store assistant messages
+            console.log('Storing assistant message:', message.message.content);
             store.setRow('messages', crypto.randomUUID(), {
               content: message.message.content,
               role: 'assistant',
@@ -75,19 +79,19 @@ export function useHumeWS(configId: string) {
             break;
 
           case 'error':
-            console.error('WebSocket error:', message);
+            console.error('WebSocket error message:', message);
             setStatus('error');
             break;
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket connection error:', error);
         setStatus('error');
       };
 
       ws.onclose = () => {
-        console.log('WebSocket closed');
+        console.log('WebSocket closed for config ID:', configId);
         setStatus('idle');
         wsRef.current = null;
       };

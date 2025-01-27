@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion"
-import React from "react"
+import React, { useEffect } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
@@ -16,6 +16,12 @@ export function BottomControls() {
   const { user } = useUser();
   const configId = user?.publicMetadata?.humeConfigId as string;
   const ws = useHumeWS(configId);
+  
+  // Add debug logging
+  useEffect(() => {
+    console.log('Current user metadata:', user?.publicMetadata);
+    console.log('Using config ID:', configId);
+  }, [user, configId]);
   
   const handleStartCall = async () => {
     setIsTransitioning(true)

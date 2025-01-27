@@ -208,6 +208,8 @@ export async function handleWebhook(req: Request) {
       if (!humeConfigId) {
         throw new Error('No Hume config ID found in metadata')
       }
+
+      // Delete Hume config
       await deleteHumeConfig(humeConfigId);
       console.log('Deleted Hume config:', humeConfigId);
 
